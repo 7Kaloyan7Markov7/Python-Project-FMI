@@ -4,10 +4,12 @@ pygame.init()
 
 screen_width = 1280
 screen_height = 720
+white = (255,255,255)
 
 screen = pygame.display.set_mode((screen_width,screen_height))
 clock = pygame.time.Clock()
-
+floor = pygame.image.load('test_floor.png').convert_alpha()
+    
 class Sprite:
     def __init__(self,image):
         self.sheet = image
@@ -21,34 +23,38 @@ class Sprite:
         return image
 
 
-
-screen_width = 1280
-screen_height = 720
-white = (0,255,0)
 current_direction = 'down'
 current_frame = 0
 player_x = 0
 player_y = 0
 
-def get_all_frames(file_path):
+def get_all_frames(file_path, width, height, scale):
     whole_image = pygame.image.load(file_path).convert_alpha()
     taking_frames = Sprite(whole_image)
     list = []
 
     for i in range(0,5):
-        list.append(taking_frames.get_image(i, 31, 31, 3, white))
+        list.append(taking_frames.get_image(i, width, height, scale, white))
     
     return list
     
 animations = {}
-animations['down'] = get_all_frames('down_animation.png')
-animations['up'] = get_all_frames('up_animation.png')
-animations['left'] = get_all_frames('left_animation.png')
-animations['right'] = get_all_frames('right_animation.png')
+animations['down'] = get_all_frames('down_animation.png', 31, 31, 3)
+animations['up'] = get_all_frames('up_animation.png', 31, 31, 3)
+animations['left'] = get_all_frames('left_animation.png', 31, 31, 3)
+animations['right'] = get_all_frames('right_animation.png', 31, 31, 3)
+
+
+sword_animations = get_all_frames('sword_right.png', 48, 39, 4)
+sword_x = 400
+sword_y = 100
+is_picked_up = False
+is_hit_limit = False
+
 
 run = True
 while run:
-    clock.tick(60)
+    clock.tick(40)
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -59,33 +65,61 @@ while run:
     is_walking = False
 
     if keys[pygame.K_a] and player_x > 0:
-        player_x -= 5
+        player_x -= 10
         current_direction = 'left'
         is_walking = True
     if keys[pygame.K_d] and player_x < screen_width - 95:
-        player_x += 5
+        player_x += 10
         current_direction = 'right'
         is_walking = True
     if keys[pygame.K_w] and player_y > 0:
-        player_y -= 5
+        player_y -= 10
         current_direction = 'up'
         is_walking = True
     if keys[pygame.K_s] and player_y < screen_height - 95:
-        player_y += 5
+        player_y += 10
         current_direction = 'down'
         is_walking = True
     if not is_walking:
         current_frame = 0
 
-
-
-
-    screen.fill((0,0,0))
-    screen.blit(animations[current_direction][current_frame], (player_x, player_y))
-    current_frame += 1
-    if current_frame == 5: current_frame = 0
-
+    screen.blit(floor, (0,0))
     
+    player_hit_box = animations['down'][0].get_rect(topleft = (player_x,player_y))
+    sword_pick_up_box = sword_animations[0].get_rect(width  = 80, height = 80, centerx = sword_x + 120, centery = sword_y + 55)
+
+    pygame.draw.rect(screen,white,player_hit_box)
+    pygame.draw.rect(screen,white,sword_pick_up_box)
+
+    screen.blit(animations[current_direction][current_frame], (player_x, player_y))
+    screen.blit(sword_animations[0], (sword_x,sword_y))
+
+    if pygame.Rect.colliderect(player_hit_box, sword_pick_up_box): is_picked_up = True
+
+
+    if not is_picked_up:
+        if not is_hit_limit:
+            sword_y += 0.5
+        else:
+            sword_y -= 0.5
+
+
+        if sword_y == 124:
+            is_hit_limit = True
+        elif sword_y == 100:
+            is_hit_limit = False
+        
+        current_frame += 1
+        if current_frame == 5: current_frame = 0
+    else:
+        if current_direction == 'left':
+            sword_x = player_x - 87
+            sword_y = player_y
+        elif current_direction == 'right':
+            sword_x = player_x - 20
+            sword_y = player_y
+
+
     pygame.display.update()        
 
 pygame.quit()
